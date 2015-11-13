@@ -227,7 +227,7 @@ class AlignPlugin(geany.Plugin):
                 assignment = line[new_s_index+1:]
                 
                 varnames.append(var)
-                assignments.append(assigment)
+                assignments.append(assignment)
             
             #iterate and set max
             c          = 0
