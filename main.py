@@ -222,9 +222,12 @@ class AlignPlugin(geany.Plugin):
             assignments = []
             
             for line in stringlines:
-                tup=line.split(s)
-                varnames.append(tup[0])
-                assignments.append(tup[1])
+                new_s_index = line.find(s)
+                var         = line[:new_s_index]
+                assignment = line[new_s_index+1:]
+                
+                varnames.append(var)
+                assignments.append(assigment)
             
             #iterate and set max
             c          = 0
