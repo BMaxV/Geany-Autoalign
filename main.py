@@ -23,9 +23,12 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-####################
-#THIS IS CURRENTLY NOT WORKING CORRECTLY
-####################
+###############
+# this should be working correctly, at least for me
+# if you encounter any problems, please leave me a message 
+# on the projects github page https://github.com/BMaxV/Geany-Autoalign
+##############
+
 
 import geany
 import re
@@ -38,9 +41,9 @@ class AlignPlugin(geany.Plugin):
     this could obviously be extended to do so.
     """
     __plugin_name__ = "Align Plugin"
-    __plugin_version__ = "0.01"
+    __plugin_version__ = "0.9"
     __plugin_description__ = "automatically aligns subsequent lines with shared elements or operators like = or , or ("
-    __plugin_author__ = "Max Voss github"
+    __plugin_author__ = "Max Voss https://github.com/BMaxV"
 
     def __init__(self):
         geany.signals.connect('geany-startup-complete',self.startstuff)
