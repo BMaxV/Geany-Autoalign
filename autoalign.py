@@ -54,7 +54,7 @@ class AlignPlugin(geany.Plugin):
         self.execute = True
         
         #turns of print statements for debugging.
-        self.test=True
+        self.test=False
         
         #TODO: resetting scroll state seamlessly
         #TODO: specify editor notify event to listen to (text change)
@@ -314,47 +314,29 @@ class AlignPlugin(geany.Plugin):
             
             
             while c < m:
-                print("")
-                print("newline")
-                print("")
+                
                 linenumber  = foundlines[c]
                 line        = scin.get_line(linenumber)
-                print(line)
-                startpos=scin.get_position_from_line(linenumber) #this is counting with 0 == first.
-                print(startpos)
-                
-                
+
+                startpos=scin.get_position_from_line(linenumber) 
+                #selection start
                 scin.set_selection_start(startpos)
-                
-                lenpnl=scin.get_line_length(linenumber)
-                
+                lenpnl=scin.get_line_length(linenumber)                
                 endpos=startpos+lenpnl
-                
+                #selection end
                 scin.set_selection_end(endpos)
-                
-                t=scin.get_contents()
-                
-                
+                                
                 t=newlines[c]
-                
+                #set new text
                 scin.replace_sel(t)
                 
-                newlinepos=scin.get_position_from_line(linenumber)
-                nll=scin.get_line_length(linenumber)
-                
+                newlinepos = scin.get_position_from_line(linenumber)
+                nll        = scin.get_line_length(linenumber)                
                 
                 new_cursor_pos = newlinepos
-                
-                #oldblock+= line
-                
+               
                 c+= 1
+                
             scin.set_current_position(new_cursor_pos)
             scin.scroll_caret()
-            
-            #print("text is now")
-            
-            #t=scin.get_contents()
-            #print(t[endpos-30:endpos])
-            
-asdf = 3
-f    = 4
+
