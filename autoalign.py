@@ -54,10 +54,11 @@ class AlignPlugin(geany.Plugin):
         self.execute = True
         
         #turns of print statements for debugging.
-        self.test=False
+        self.test=True
         
         #TODO: resetting scroll state seamlessly
         #TODO: specify editor notify event to listen to (text change)
+        
         
         
     def startstuff(self,*args):
@@ -306,33 +307,54 @@ class AlignPlugin(geany.Plugin):
             m          = len(foundlines)
             oldblock   = ""
             
+            if self.execute==False:
+                return
+            
+            print(newlines)
+            
+            
             while c < m:
+                print("")
+                print("newline")
+                print("")
                 linenumber  = foundlines[c]
                 line        = scin.get_line(linenumber)
-                
-                oldblock+= line
-                
-                c+= 1
-            
-            cupos    = scin.get_current_position()
-            startpos = the_entire_file.find(oldblock)
-            posd     = cupos-startpos
-            if self.test:
-                print(posd)
+                print(line)
+                startpos=scin.get_position_from_line(linenumber) #this is counting with 0 == first.
                 print(startpos)
                 
-            end = startpos+len(oldblock)
-            if self.test:
-                print(end)
+                
+                scin.set_selection_start(startpos)
+                
+                lenpnl=scin.get_line_length(linenumber)
+                
+                endpos=startpos+lenpnl
+                
+                scin.set_selection_end(endpos)
+                
+                t=scin.get_contents()
+                
+                
+                t=newlines[c]
+                
+                scin.replace_sel(t)
+                
+                newlinepos=scin.get_position_from_line(linenumber)
+                nll=scin.get_line_length(linenumber)
+                
+                
+                new_cursor_pos = newlinepos
+                
+                #oldblock+= line
+                
+                c+= 1
+            scin.set_current_position(new_cursor_pos)
+            scin.scroll_caret()
             
-            the_entire_file = the_entire_file[:startpos]+ newblock+ the_entire_file[end:]
+            #print("text is now")
             
-            newcurpos=startpos+len(newblock)-1
+            #t=scin.get_contents()
+            #print(t[endpos-30:endpos])
             
-            #I still have to set the position of the cursor correctly
-            if self.execute==True:
-                scin.set_text(the_entire_file)
-                scin.set_current_position(newcurpos)
-                scin.scroll_caret()
-
-
+asdf = 3
+f    = 4
