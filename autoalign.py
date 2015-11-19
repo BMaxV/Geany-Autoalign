@@ -55,11 +55,13 @@ class AlignPlugin(geany.Plugin):
         self.execute = True
         
         #turns of print statements for debugging.
-        self.test=True
+        self.test=False
         
         #TODO: resetting scroll state seamlessly
         #TODO: specify editor notify event to listen to (text change)
         
+        #just to keep track of how many times this was triggered
+        self.c=0
         
         
     def startstuff(self,*args):
@@ -70,15 +72,17 @@ class AlignPlugin(geany.Plugin):
     def main(self,*args):
         """nice separation of functionality, maybe I'll cut down my god
         function later, right now it's small enough to be read at once"""
-        
-        if args[2].nmhdr.code==2008:
-            if self.test:
-                print("this is modify")
+        #print("main")
+        codes=[2001] #2001 is charadded,2005 is all keypresses
+        #print(args[2].nmhdr.code)
+        if args[2].nmhdr.code in codes:
+            print(args[2].nmhdr.code)
+            
             #putting it behind the 'if' somehow stops the changes
             #from being applied or something.
             
             #correct code? hm...
-        self.detect_symbols()
+            self.detect_symbols()
         
     def line_split(self,foundlines,s):
        
@@ -247,6 +251,13 @@ class AlignPlugin(geany.Plugin):
         return newvarnames
     
     def set_lines(self,foundlines,newlines):
+        
+        print("")
+        print("")
+        print(self.c)
+        print("")
+        print("")
+        
         c=0
         m=len(foundlines)
         while c < m:
@@ -296,6 +307,9 @@ class AlignPlugin(geany.Plugin):
     
     def detect_symbols(self):
         """the god function running this plugin"""
+        
+        self.c+=1
+        
         symbols=["=",]
         notkeys=[":","+="] #lines with these symbols break all aligment
         
@@ -369,5 +383,5 @@ class AlignPlugin(geany.Plugin):
             
             new_cursor_pos=self.set_lines(foundlines,newlines)
             
-            self.scin.set_current_position(new_cursor_pos)
-            self.scin.scroll_caret()
+            #self.scin.set_current_position(new_cursor_pos)
+            #self.scin.scroll_caret()
