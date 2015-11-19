@@ -55,7 +55,7 @@ class AlignPlugin(geany.Plugin):
         self.execute = True
         
         #turns of print statements for debugging.
-        self.test=False
+        self.test=True
         
         #TODO: resetting scroll state seamlessly
         #TODO: specify editor notify event to listen to (text change)
@@ -71,6 +71,13 @@ class AlignPlugin(geany.Plugin):
         """nice separation of functionality, maybe I'll cut down my god
         function later, right now it's small enough to be read at once"""
         
+        if args[2].nmhdr.code==2008:
+            if self.test:
+                print("this is modify")
+            #putting it behind the 'if' somehow stops the changes
+            #from being applied or something.
+            
+            #correct code? hm...
         self.detect_symbols()
         
     def line_split(self,foundlines,s):
@@ -294,6 +301,8 @@ class AlignPlugin(geany.Plugin):
         
         doc=geany.document.get_current()
         if doc==None:
+            if self.test:
+                print("no document, aborting")
             return
         self.scin=doc.editor.scintilla
         
@@ -306,23 +315,28 @@ class AlignPlugin(geany.Plugin):
             foundlines=[]
             
             if s in line:
-                
                 stop=False
                 for nk in notkeys:
                     if nk in line:
                         stop=True
                         
                 if stop==True:
+                    if self.test:
+                        print("continuing")
                     continue
                 
                 foundlines=self.find_lines(line_number,line,s,notkeys)
             else:
+                if self.test:
+                    print("symbol not in line")
                 continue
             
             # ok so by now we have all relevant line numbers
             #which also means, if there is only one, we can stop
             
             if len(foundlines)==1:
+                if self.test:
+                    print("online one line")
                 continue
             
             #let's sort them too please
@@ -349,6 +363,9 @@ class AlignPlugin(geany.Plugin):
             
             if self.execute==False:
                 return
+            
+            #ok so. ideally the new position would be 
+            #where the old position was, in terms of syntax, or relative inside of words.
             
             new_cursor_pos=self.set_lines(foundlines,newlines)
             
