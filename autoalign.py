@@ -46,6 +46,7 @@ class AlignPlugin(geany.Plugin):
     __plugin_author__ = "Max Voss https://github.com/BMaxV"
 
     def __init__(self):
+        print("init")
         geany.signals.connect('geany-startup-complete',self.startstuff)
         
         #switches between analysis and writing to the document.
@@ -69,8 +70,223 @@ class AlignPlugin(geany.Plugin):
     def main(self,*args):
         """nice separation of functionality, maybe I'll cut down my god
         function later, right now it's small enough to be read at once"""
+        
         self.detect_symbols()
+        
+    def line_split(self,foundlines,s):
+       
+        #now everything is in order
+        stringlines=[]
+        
+        #put em in a list
+        for ind in foundlines:
+            l=self.scin.get_line(ind)
+            stringlines.append(l)
+        
+        
+        #first lets get the maximum difference
+        
+        #split it up
+        varnames    = []
+        assignments = []
+        
+        for line in stringlines:
+            new_s_index = line.find(s)
+            var         = line[:new_s_index]
+            assignment = line[new_s_index+1:]
+            
+            varnames.append(var)
+            assignments.append(assignment)
+            
+        return varnames,assignments
+        
+    def find_lines(self,line_number,line,symbol,notkeys):
+        s=symbol
+        foundlines=[]
+        
+        #if it's a stop symbol continue
+        
+        
+        #if yes go on searching for the other lines if they have one too
+        foundlines.append(line_number)
+        
+        #indentation assuming there is no trailing whitespace, which there shouldn't be anyway
+        
+        matchstring="[\S]"
+        matchob=re.search(matchstring,line)
+        indents = matchob.start()
+        
+        if self.test:
+            print "indents",indents
+            
+        #save it for later
+        self.firstindent=indents
+        
+        sindex = line.find(s)
+        
+        #go up...
+        up       = 1
+        combined = line_number-up
+        
+        while combined!=-1:
+            
+            #get the line
+            combined = line_number-up
+            line     = self.scin.get_line(combined)
+            
+            #they're already aligned if...
+            if line.find(s)==sindex:
+                break
                 
+            #similar conditions...
+            if s in line:
+                
+                stop=False
+                for nk in notkeys:
+                    if nk in line:
+                        stop=True
+                if stop==True:
+                    break
+                
+                #only add when the number of indents is the same
+                matchstring="[\S]"
+                matchob=re.search(matchstring,line)
+                indents = matchob.start()
+                if indents==self.firstindent:
+                    foundlines.append(combined)
+                else:
+                    break
+            else:
+                break
+            up+=1
+            
+        #same as up, except down
+        down     = 1
+        combined = line_number-down
+        while True :
+            combined=line_number+down
+            line=self.scin.get_line(combined)
+            
+            if line.find(s)==sindex:
+                break
+                
+            if s in line:
+                stop=False
+                for nk in notkeys:
+                    if nk in line:
+                        stop=True
+                if stop==True:
+                    break
+                
+                #find the first letter in the line, set all spaces before as indents
+                matchstring="[\S]"
+                matchob=re.search(matchstring,line)
+                indents = matchob.start()
+                
+                if indents==self.firstindent:
+                    foundlines.append(combined)
+                else:
+                    if self.test:
+                        print "'"+line+"'", "was not indented the same way", indents,self.firstindent
+                    break
+            else:
+                break
+            down+=1
+        return foundlines
+    
+    def buffervars(self,varnames):
+        #iterate and set max
+        c          = 0
+        maxlen     = 0
+        varnamelen = len(varnames)
+        biggest    = None
+        while c < varnamelen:
+            var    = varnames[c]
+            var    = var.strip()
+            varlen = len(var)
+            if varlen > maxlen:
+                maxlen  = varlen
+                biggest = var
+                
+            c+=1
+        if self.test:
+            print("maxlen is from" ,biggest,"and is the length",maxlen)
+            print("stripped vars")
+            
+        #now fill in the blanks
+        c           = 0
+        newvarnames = []
+        while c < varnamelen:
+            var = varnames[c]
+            var = var.strip()
+            if self.test:
+                print("'"+var+"'")
+            varlen=len(var)
+            if varlen < maxlen:
+                d    =  maxlen-varlen
+                
+                if self.test:
+                    print("'"+var+"'")
+                    print"difference between this and max is" ,d
+                    
+                    
+                newvar=self.firstindent*" " +var+" "*d
+                
+            else:
+                newvar=self.firstindent*" " +var
+            newvarnames.append(newvar)
+            c+=1
+            
+        return newvarnames
+    
+    def set_lines(self,foundlines,newlines):
+        c=0
+        m=len(foundlines)
+        while c < m:
+            
+            linenumber  = foundlines[c]
+            line        = self.scin.get_line(linenumber)
+
+            startpos=self.scin.get_position_from_line(linenumber) 
+            #selection start
+            self.scin.set_selection_start(startpos)
+            lenpnl=self.scin.get_line_length(linenumber)                
+            endpos=startpos+lenpnl
+            #selection end
+            self.scin.set_selection_end(endpos)
+                            
+            t=newlines[c]
+            #set new text
+            self.scin.replace_sel(t)
+            
+            newlinepos = self.scin.get_position_from_line(linenumber)
+            nll        = self.scin.get_line_length(linenumber)                
+            
+            new_cursor_pos = newlinepos
+           
+            c+= 1
+            
+        return new_cursor_pos
+    
+    def assemble_new_lines(self,newvarnames,assignments,symbol):
+        newlines = []
+        c        = 0
+        l       = len(newvarnames)
+        if self.test:
+            print("assignments")
+            
+        while c < l:
+            a=assignments[c]
+            a=a.strip()
+            a=a.rstrip('\r\n')
+            if self.test:
+                print("'"+a+"'")
+            newline = newvarnames[c]+" "+symbol+" "+a+"\n"
+            newlines.append(newline)
+            c+=1
+            
+        return newlines
+    
     def detect_symbols(self):
         """the god function running this plugin"""
         symbols=["=",]
@@ -79,116 +295,29 @@ class AlignPlugin(geany.Plugin):
         doc=geany.document.get_current()
         if doc==None:
             return
-        scin=doc.editor.scintilla
-        
+        self.scin=doc.editor.scintilla
         
         #obvious
-        line_number = scin.get_current_line()
-        line        = scin.get_line(line_number)
-        
+        line_number = self.scin.get_current_line()
+        line        = self.scin.get_line(line_number)
         
         for s in symbols:
+            
             foundlines=[]
             
             if s in line:
                 
-                #if it's a stop symbol continue
                 stop=False
                 for nk in notkeys:
                     if nk in line:
                         stop=True
+                        
                 if stop==True:
                     continue
                 
-                #if yes go on searching for the other lines if they have one too
-                foundlines.append(line_number)
-                
-                #indentation assuming there is no trailing whitespace, which there shouldn't be anyway
-                
-                matchstring="[\S]"
-                matchob=re.search(matchstring,line)
-                indents = matchob.start()
-                if self.test:
-                    print "indents",indents
-                #save it for later
-                firstindent=indents
-                
-                sindex = line.find(s)
-                
-                
-                #go up...
-                up       = 1
-                combined = line_number-up
-                
-                
-                
-                while combined!=-1:
-                    
-                    #get the line
-                    combined = line_number-up
-                    line     = scin.get_line(combined)
-                    
-                    #they're already aligned if...
-                    if line.find(s)==sindex:
-                        break
-                        
-                    #similar conditions...
-                    if s in line:
-                        
-                        stop=False
-                        for nk in notkeys:
-                            if nk in line:
-                                stop=True
-                        if stop==True:
-                            break
-                        
-                        #only add when the number of indents is the same
-                        matchstring="[\S]"
-                        matchob=re.search(matchstring,line)
-                        indents = matchob.start()
-                        if indents==firstindent:
-                            foundlines.append(combined)
-                        else:
-                            break
-                    else:
-                        break
-                    up+=1
-                    
-                #same as up, except down
-                down     = 1
-                combined = line_number-down
-                while True :
-                    combined=line_number+down
-                    line=scin.get_line(combined)
-                    
-                    if line.find(s)==sindex:
-                        break
-                        
-                    if s in line:
-                        stop=False
-                        for nk in notkeys:
-                            if nk in line:
-                                stop=True
-                        if stop==True:
-                            break
-                        
-                        #find the first letter in the line, set all spaces before as indents
-                        matchstring="[\S]"
-                        matchob=re.search(matchstring,line)
-                        indents = matchob.start()
-                        
-                        if indents==firstindent:
-                            foundlines.append(combined)
-                        else:
-                            if self.test:
-                                print "'"+line+"'", "was not indented the same way", indents,firstindent
-                            break
-                    else:
-                        break
-                    down+=1
+                foundlines=self.find_lines(line_number,line,s,notkeys)
             else:
                 continue
-            
             
             # ok so by now we have all relevant line numbers
             #which also means, if there is only one, we can stop
@@ -196,147 +325,32 @@ class AlignPlugin(geany.Plugin):
             if len(foundlines)==1:
                 continue
             
-            
-            
             #let's sort them too please
             foundlines.sort()
+            
             if self.test:
                 print("finding lines")
                 for line in foundlines:
-                    tline=scin.get_line(line)
+                    tline=self.scin.get_line(line)
                     print("'"+tline+"'")
-                
-            #now everything is in order
-            
-            stringlines=[]
-            
-            #put em in a list
-            for ind in foundlines:
-                l=scin.get_line(ind)
-                stringlines.append(l)
-            
-            
-            #first lets get the maximum difference
-            
-            #split it up
-            varnames    = []
-            assignments = []
-            
-            for line in stringlines:
-                new_s_index = line.find(s)
-                var         = line[:new_s_index]
-                assignment = line[new_s_index+1:]
-                
-                varnames.append(var)
-                assignments.append(assignment)
-            
-            #iterate and set max
-            c          = 0
-            maxlen     = 0
-            varnamelen = len(varnames)
-            biggest    = None
-            while c < varnamelen:
-                var    = varnames[c]
-                var    = var.strip()
-                varlen = len(var)
-                if varlen > maxlen:
-                    maxlen  = varlen
-                    biggest = var
-                    
-                c+=1
-            if self.test:
-                print("maxlen is from" ,biggest,"and is the length",maxlen)
-                print("stripped vars")
-                
-            #now fill in the blanks
-            c           = 0
-            newvarnames = []
-            while c < varnamelen:
-                var = varnames[c]
-                var = var.strip()
-                if self.test:
-                    print("'"+var+"'")
-                varlen=len(var)
-                if varlen < maxlen:
-                    d    =  maxlen-varlen
-                    
-                    if self.test:
-                        print("'"+var+"'")
-                        print"difference between this and max is" ,d
-                        
-                        
-                    newvar=firstindent*" " +var+" "*d
-                    
-                else:
-                    newvar=firstindent*" " +var
-                newvarnames.append(newvar)
-                c+=1
-            
+             
+            varnames,assigments=self.line_split(foundlines,s)
+            newvarnames=self.buffervars(varnames)
+           
             #now I just need to write the new lines...
-
             #anyway the new lines should be like this:
-            
             #everything should be in order since we sorted once and then only iterated normaly
-            
-            newlines = []
-            c        = 0
-            ml       = len(foundlines)
-            if self.test:
-                print("assignments")
-            while c < ml:
-                a=assignments[c]
-                a=a.strip()
-                a=a.rstrip('\r\n')
-                if self.test:
-                    print("'"+a+"'")
-                newline = newvarnames[c]+" = "+a+"\n"
-                newlines.append(newline)
-                c+=1
+            newlines=self.assemble_new_lines(newvarnames,assigments,s)
+        
             if self.test:
                 print("the newlines should be")
-            newblock=""
-            for line in newlines:
-                if self.test:
+                for line in newlines:
                     print("'"+line+"'")
-                newblock+=line
-            the_entire_file = scin.get_contents()
-            
-            linenumber = 0
-            newend     = 0
-            c          = 0
-            m          = len(foundlines)
-            oldblock   = ""
             
             if self.execute==False:
                 return
             
-            print(newlines)
+            new_cursor_pos=self.set_lines(foundlines,newlines)
             
-            
-            while c < m:
-                
-                linenumber  = foundlines[c]
-                line        = scin.get_line(linenumber)
-
-                startpos=scin.get_position_from_line(linenumber) 
-                #selection start
-                scin.set_selection_start(startpos)
-                lenpnl=scin.get_line_length(linenumber)                
-                endpos=startpos+lenpnl
-                #selection end
-                scin.set_selection_end(endpos)
-                                
-                t=newlines[c]
-                #set new text
-                scin.replace_sel(t)
-                
-                newlinepos = scin.get_position_from_line(linenumber)
-                nll        = scin.get_line_length(linenumber)                
-                
-                new_cursor_pos = newlinepos
-               
-                c+= 1
-                
-            scin.set_current_position(new_cursor_pos)
-            scin.scroll_caret()
-
+            self.scin.set_current_position(new_cursor_pos)
+            self.scin.scroll_caret()
