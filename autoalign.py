@@ -74,10 +74,11 @@ class AlignPlugin(geany.Plugin):
         """nice separation of functionality, maybe I'll cut down my god
         function later, right now it's small enough to be read at once"""
         #print("main")
-        codes=[2001] 
+        codes=[2001,2007] #2008
         #2001 is charadded,2005 is all keypresses
         #1 is supposedly content change
-        
+        #print("code")
+        #print(args[2].nmhdr.code)
         if args[2].nmhdr.code in codes:
             if self.test:
                 print("triggercode:")
