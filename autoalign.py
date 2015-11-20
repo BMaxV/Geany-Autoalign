@@ -46,7 +46,7 @@ class AlignPlugin(geany.Plugin):
     __plugin_author__ = "Max Voss https://github.com/BMaxV"
 
     def __init__(self):
-        print("init")
+        
         geany.signals.connect('geany-startup-complete',self.startstuff)
         
         #switches between analysis and writing to the document.
@@ -56,7 +56,8 @@ class AlignPlugin(geany.Plugin):
         
         #turns of print statements for debugging.
         self.test=False
-        
+        if self.test:
+            print("init")
         #TODO: resetting scroll state seamlessly
         #TODO: specify editor notify event to listen to (text change)
         
@@ -73,10 +74,14 @@ class AlignPlugin(geany.Plugin):
         """nice separation of functionality, maybe I'll cut down my god
         function later, right now it's small enough to be read at once"""
         #print("main")
-        codes=[2001] #2001 is charadded,2005 is all keypresses
-        #print(args[2].nmhdr.code)
+        codes=[2001] 
+        #2001 is charadded,2005 is all keypresses
+        #1 is supposedly content change
+        
         if args[2].nmhdr.code in codes:
-            print(args[2].nmhdr.code)
+            if self.test:
+                print("triggercode:")
+                print(args[2].nmhdr.code)
             
             #putting it behind the 'if' somehow stops the changes
             #from being applied or something.
@@ -85,7 +90,7 @@ class AlignPlugin(geany.Plugin):
             self.detect_symbols()
         
     def line_split(self,foundlines,s):
-       
+        """splits the lines into the parts left and right of the symbol to be aligned"""
         #now everything is in order
         stringlines=[]
         
@@ -94,29 +99,76 @@ class AlignPlugin(geany.Plugin):
             l=self.scin.get_line(ind)
             stringlines.append(l)
         
-        
         #first lets get the maximum difference
         
         #split it up
         varnames    = []
         assignments = []
         
-        for line in stringlines:
+        c=0
+        m=len(stringlines)
+        
+        self.new_cursor_position="undefined"
+            
+        while c < m:
+            line        = stringlines[c]
             new_s_index = line.find(s)
             var         = line[:new_s_index]
-            assignment = line[new_s_index+1:]
+            assignment  = line[new_s_index+1:]
             
             varnames.append(var)
             assignments.append(assignment)
             
+            #find the relative cursor position in my parts:
+            
+            
+            if self.test:
+                print("line and cursorline pre assign")
+                print(c)
+                print(self.cursor_line_foundline_index)
+            
+            if c==self.cursor_line_foundline_index:
+                if self.test:
+                    print("in cursorline")
+                if self.relative_cursor_in_line_position == new_s_index:
+                    if self.test:
+                        print("at symbol set")
+                    self.new_cursor_position = "at symbol"
+                    self.in_section_index    = 0
+                
+                if self.relative_cursor_in_line_position < self.firstindent:
+                    if self.test:
+                        print("in indent set")
+                    
+                    self.new_cursor_position = "in indent"
+                    
+                    self.new_cursor_offset   = self.relative_cursor_in_line_position
+                    #the cursor is inside the indentation block, I have to move it I think.
+                
+                #here the offset needs to be different.
+                
+                if self.firstindent < self.relative_cursor_in_line_position < new_s_index:
+                    if self.test:
+                        print("in var set")
+                    #the cursor is inside the variable, I think
+                    self.new_cursor_position = "in var"
+                    
+                    self.in_section_index = self.relative_cursor_in_line_position
+                 
+                if self.relative_cursor_in_line_position > new_s_index:
+                    if self.test:
+                        print("after symbol set")
+                    self.new_cursor_position = "after symbol"
+                    self.in_section_index = self.relative_cursor_in_line_position - new_s_index
+            c+=1
         return varnames,assignments
         
     def find_lines(self,line_number,line,symbol,notkeys):
+        """finds all adjecent lines that also need to be aligned"""
         s=symbol
         foundlines=[]
         
         #if it's a stop symbol continue
-        
         
         #if yes go on searching for the other lines if they have one too
         foundlines.append(line_number)
@@ -128,7 +180,8 @@ class AlignPlugin(geany.Plugin):
         indents = matchob.start()
         
         if self.test:
-            print "indents",indents
+            print ("indents")
+            print(indents)
             
         #save it for later
         self.firstindent=indents
@@ -240,7 +293,6 @@ class AlignPlugin(geany.Plugin):
                     print("'"+var+"'")
                     print"difference between this and max is" ,d
                     
-                    
                 newvar=self.firstindent*" " +var+" "*d
                 
             else:
@@ -249,14 +301,38 @@ class AlignPlugin(geany.Plugin):
             c+=1
             
         return newvarnames
-    
-    def set_lines(self,foundlines,newlines):
         
-        print("")
-        print("")
-        print(self.c)
-        print("")
-        print("")
+    def cursor_position(self,foundlines):
+    
+        self.cursor_position_before=self.scin.get_current_position()
+        #get the first line start
+        self.blockstart = self.scin.get_position_from_line(foundlines[0])
+        
+        blockend    = self.blockstart            
+        
+        c=0
+        m=len(foundlines)
+        while c < m:
+            l=foundlines[c]
+            ll=self.scin.get_line_length(l)
+            blockend+=ll
+            if self.blockstart <=self.cursor_position_before <= blockend:
+                self.cursorline = l
+                cursorlinestart = self.scin.get_position_from_line(l)
+                
+                self.relative_cursor_in_line_position = self.cursor_position_before - cursorlinestart
+                self.cursor_line_foundline_index      = c
+                break
+                
+            c+=1
+            
+    def set_lines(self,foundlines,newlines):
+        if self.test:
+            print("")
+            print("")
+            print(self.c)
+            print("")
+            print("")
         
         c=0
         m=len(foundlines)
@@ -287,6 +363,9 @@ class AlignPlugin(geany.Plugin):
         return new_cursor_pos
     
     def assemble_new_lines(self,newvarnames,assignments,symbol):
+        
+        newblocklength=0
+        
         newlines = []
         c        = 0
         l       = len(newvarnames)
@@ -301,6 +380,45 @@ class AlignPlugin(geany.Plugin):
                 print("'"+a+"'")
             newline = newvarnames[c]+" "+symbol+" "+a+"\n"
             newlines.append(newline)
+            
+            if c == self.cursor_line_foundline_index:
+                #this is the new line my cursor needs to be in.
+                
+                new_symbol_index = len(newvarnames[c])
+                
+                self.new_inline_index=0
+                if self.test:
+                    print("new cursor position")
+                    print(self.new_cursor_position)
+                
+                if self.new_cursor_position == "at symbol":
+                    if self.test:
+                        print("at symbol")
+                    self.new_inline_index = new_symbol_index
+                    
+                if self.new_cursor_position == "in indent":
+                    if self.test:
+                        print("in indent")
+                    self.new_inline_index = 0 #?
+                
+                if self.new_cursor_position == "in var":
+                    if self.test:
+                        print("in var")
+                    self.new_inline_index = self.in_section_index
+                    
+                if self.new_cursor_position == "after symbol":
+                    if self.test:
+                        print("after symbol")
+                    self.new_inline_index = new_symbol_index  + self.in_section_index
+                if self.test:
+                    print("hurr")
+                #oldblockstart + newblock length up to this line, + newline index
+                self.new_cursor_position = self.blockstart + newblocklength + self.new_inline_index
+            #anticipate new cursor position
+            #
+            
+            newblocklength+=len(newline)
+            
             c+=1
             
         return newlines
@@ -361,7 +479,9 @@ class AlignPlugin(geany.Plugin):
                 for line in foundlines:
                     tline=self.scin.get_line(line)
                     print("'"+tline+"'")
-             
+            
+            self.cursor_position(foundlines)
+            
             varnames,assigments=self.line_split(foundlines,s)
             newvarnames=self.buffervars(varnames)
            
@@ -380,8 +500,22 @@ class AlignPlugin(geany.Plugin):
             
             #ok so. ideally the new position would be 
             #where the old position was, in terms of syntax, or relative inside of words.
+            alltext = self.scin.get_contents()
+            oldpos  = self.scin.get_current_position()
+            if self.test:
+                print("old cursor position")
+                print(len(alltext))
+                print(oldpos)
+                print(alltext[oldpos-1])
             
             new_cursor_pos=self.set_lines(foundlines,newlines)
             
-            #self.scin.set_current_position(new_cursor_pos)
+            #this should be where the new cursor position sits
+            alltext=self.scin.get_contents()
+            
+            if self.test:
+                print("new cursor position")
+                print(alltext[self.new_cursor_position]+"#")
+            
+            self.scin.set_current_position(self.new_cursor_position)
             #self.scin.scroll_caret()
