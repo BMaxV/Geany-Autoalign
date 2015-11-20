@@ -56,6 +56,7 @@ class AlignPlugin(geany.Plugin):
         
         #turns of print statements for debugging.
         self.test=False
+        
         if self.test:
             print("init")
         #TODO: resetting scroll state seamlessly
@@ -131,13 +132,13 @@ class AlignPlugin(geany.Plugin):
             if c==self.cursor_line_foundline_index:
                 if self.test:
                     print("in cursorline")
-                if self.relative_cursor_in_line_position == new_s_index:
+                if self.relative_cursor_in_line_position -1 == new_s_index:
                     if self.test:
                         print("at symbol set")
                     self.new_cursor_position = "at symbol"
                     self.in_section_index    = 0
                 
-                if self.relative_cursor_in_line_position < self.firstindent:
+                if self.relative_cursor_in_line_position -1 < self.firstindent:
                     if self.test:
                         print("in indent set")
                     
@@ -148,7 +149,7 @@ class AlignPlugin(geany.Plugin):
                 
                 #here the offset needs to be different.
                 
-                if self.firstindent < self.relative_cursor_in_line_position < new_s_index:
+                if self.firstindent < self.relative_cursor_in_line_position-1 < new_s_index:
                     if self.test:
                         print("in var set")
                     #the cursor is inside the variable, I think
@@ -156,11 +157,13 @@ class AlignPlugin(geany.Plugin):
                     
                     self.in_section_index = self.relative_cursor_in_line_position
                  
-                if self.relative_cursor_in_line_position > new_s_index:
+                if self.relative_cursor_in_line_position-1 > new_s_index:
                     if self.test:
                         print("after symbol set")
+                        print(self.relative_cursor_in_line_position )
+                        print(new_s_index)
                     self.new_cursor_position = "after symbol"
-                    self.in_section_index = self.relative_cursor_in_line_position - new_s_index
+                    self.in_section_index    = self.relative_cursor_in_line_position - new_s_index
             c+=1
         return varnames,assignments
         
@@ -395,7 +398,9 @@ class AlignPlugin(geany.Plugin):
                 if self.new_cursor_position == "at symbol":
                     if self.test:
                         print("at symbol")
-                    self.new_inline_index = new_symbol_index
+                        print("new symbol index")
+                        print(new_symbol_index)
+                    self.new_inline_index = new_symbol_index +3
                     
                 if self.new_cursor_position == "in indent":
                     if self.test:
