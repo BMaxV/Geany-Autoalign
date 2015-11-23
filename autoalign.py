@@ -138,7 +138,7 @@ class AlignPlugin(geany.Plugin):
                     self.new_cursor_position = "at symbol"
                     self.in_section_index    = 0
                 
-                if self.relative_cursor_in_line_position -1 < self.firstindent:
+                if self.relative_cursor_in_line_position < self.firstindent:
                     if self.test:
                         print("in indent set")
                     
@@ -149,7 +149,7 @@ class AlignPlugin(geany.Plugin):
                 
                 #here the offset needs to be different.
                 
-                if self.firstindent < self.relative_cursor_in_line_position-1 < new_s_index:
+                if self.firstindent-1 < self.relative_cursor_in_line_position < new_s_index+1:
                     if self.test:
                         print("in var set")
                     #the cursor is inside the variable, I think
@@ -164,6 +164,12 @@ class AlignPlugin(geany.Plugin):
                         print(new_s_index)
                     self.new_cursor_position = "after symbol"
                     self.in_section_index    = self.relative_cursor_in_line_position - new_s_index
+                
+                if self.new_cursor_position=="undefined":
+                    if self.test:
+                        print("UNDEFINED")
+                        print(self.relative_cursor_in_line_position)
+                        print(self.firstindent)
             c+=1
         return varnames,assignments
         
@@ -405,7 +411,7 @@ class AlignPlugin(geany.Plugin):
                 if self.new_cursor_position == "in indent":
                     if self.test:
                         print("in indent")
-                    self.new_inline_index = 0 #?
+                    self.new_inline_index = self.in_section_index #?
                 
                 if self.new_cursor_position == "in var":
                     if self.test:
