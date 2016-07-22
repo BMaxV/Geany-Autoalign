@@ -13,6 +13,4 @@ bar    = 1</code></pre>
 
 without you typing all those spaces!
 
-For info on how to install python plugins like this one, see the geanypython plugin readme at
-
-https://github.com/codebrainz/geanypy
+To install it, just copy the .py to ~/.config/geany/plugins/ .

@@ -78,8 +78,7 @@ class AlignPlugin(geany.Plugin):
         codes=[2001,2007] #2008
         #2001 is charadded,2005 is all keypresses
         #1 is supposedly content change
-        #print("code")
-        #print(args[2].nmhdr.code)
+        
         if args[2].nmhdr.code in codes:
             if self.test:
                 print("triggercode:")
@@ -441,7 +440,7 @@ class AlignPlugin(geany.Plugin):
         self.c+=1
         
         symbols=["=",]
-        notkeys=[":","+="] #lines with these symbols break all aligment
+        notkeys=[":","+=","!="] #lines with these symbols break all aligment
         
         doc=geany.document.get_current()
         if doc==None:
@@ -524,10 +523,7 @@ class AlignPlugin(geany.Plugin):
             
             #this should be where the new cursor position sits
             alltext=self.scin.get_contents()
-            
             if self.test:
                 print("new cursor position")
                 print(alltext[self.new_cursor_position]+"#")
-            
             self.scin.set_current_position(self.new_cursor_position)
-            #self.scin.scroll_caret()
