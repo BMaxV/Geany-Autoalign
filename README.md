@@ -13,4 +13,4 @@ bar    = 1</code></pre>
 
 without you typing all those spaces!
 
-To install it, just copy the .py to ~/.config/geany/plugins/ .
+To install it, just copy the .py to <code> ~/.config/geany/plugins/ </code> .
