@@ -1,6 +1,8 @@
 # Geany-Autoalign
 A python plugin for the geany editor that automatically aligns your symbols.
 
+The other day I found out this is actually against the style convention for python.
+
 For example "=":
 
 <pre><code>fooooo=1
